@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Construction Management System - Login</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+<style>
+body { font-family: Arial; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; background-size: cover; background-position: center; background-repeat: no-repeat; }
+form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px #aaa; width: 300px; }
+input { width: 100%; padding: 10px; margin: 10px 0; }
+button { width: 100%; padding: 10px; background: #007BFF; color: white; border: none; cursor: pointer; }
+button:hover { background: #0056b3; }
+</style>
+</head>
+
+<body>
+    <header>
+        <h2>Welcome To Construction Management System</h2>
+    </header>
+
+    <main>
+        <h2>Login</h2> 
+
+    <form method="POST" action="login.php">
+        
+        <label>Email:</label>
+        <input type="email" name="email" required><br><br>
+
+        <label>Password:</label>
+        <input type="password" name="password" required><br><br>
+
+        <!--Hidden input to store the expected role(company Admin Or Super Admin) for login validation -->
+        <!--This hidden input gets the role(SUPER_ADMIN or COMPANY_ADMIN) which was read by JavaScript-->
+        <input type="hidden" name="expected_role" id="expected_role">
+
+        <button type="submit">Login</button>
+    </form>
+
+    </main>
+    <script src="js/script.js"></script><br><br><br><br><br>
+    
+
+    <!--<a href="super_admin_dashboard.php">Access as Super Admin</a><br><br>-->
+    <a class="back" href="index.html">Back To The Main Dashboard</a>
+
+    <footer>
+        <p> © 2026 Construction Management System. All rights reserved.</p>
+    </footer>
+</body>
+
+<!--Auto-Fill the value using JS of expected_role based on the login link clicked -->
+<script>
+    const parameters = new URLSearchParams(window.location.search);
+    const role = parameters.get('role');
+
+    if (role) {
+        document.getElementById('expected_role').value = role;
+    }
+</script>
+</html>
