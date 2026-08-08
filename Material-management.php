@@ -14,6 +14,18 @@ requireAnyRole([
 include("database/connect.php"); // Include the database connection file
 include("dashboard_layout.php"); // Include the common dashboard layout
 
+// the code below is there to allow the pop up message
+$message = "";
+$message_type = "";
+
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    $message_type = $_SESSION['message_type'];
+
+    unset($_SESSION['message']);
+    unset($_SESSION['message_type']);
+}
+
 if (!isset($_SESSION["user_id"])){
     header("Location: login.html");
     exit();
@@ -27,13 +39,12 @@ $role = $_SESSION['role'];
 // Handle add Material (ONLY ALLOWED ROLES)/ Inser material
 if ($_SERVER["REQUEST_METHOD"] == "POST" && in_array($role, ['COMPANY_ADMIN','PROJECT_MANAGER', 'SITE_ENGINEER', 'STORE_KEEPER'])) {
     
-    $name = $_POST["name"];
+    $material_name = $_POST["material_name"];
     $quantity = $_POST["quantity"];
     $unit_price = $_POST["unit_price"];
     $supplier = $_POST["supplier"];
-    $total_cost = &$quantity * $unit_price; // Calculate total cost
-
-    $sql = "INSERT INTO materials ( name, quantity, unit_price, supplier, total_cost) VALUES ('$name', '$quantity', '$unit_price', '$supplier', '$total_cost')";
+    
+    $sql = "INSERT INTO materials (company_id, material_name, quantity, unit_price, supplier, date_added) VALUES ('$company_id' ,'$material_name', '$quantity', '$unit_price', '$supplier', NOW())";
     
 
     if (mysqli_query($conn, $sql)) {
@@ -52,15 +63,6 @@ if (!$conn) {
     $result = $conn->query("SELECT * FROM materials WHERE company_id = '$company_id'");
 ?>
 
-<!-- Add Edit/ Delete buttons -->
-
-<td>
-<?php if(in_array($role, ['PROJECT_MANAGER', 'COMPANY_ADMIN'])):?>
-    <a href="edit-material.php?id=<?= $row['id'] ?>">Edit</a>|
-    <a href="delete_material.php?id=<?= $row['id']?>" onclick="return confirm('Delete?')">Delete</a></a>
-<?php endif; ?>
-</td>
-
 <!-- Display role for debugging -->
 
 <td><?=$role?></td>
@@ -68,29 +70,74 @@ if (!$conn) {
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Material Management</title>
-        <p> Here you will manage all your materials.</p>
+        <title >Material Management</title>
+        <h4> Here you will create new materials and be able to see the created materials in the table.</h4>
         
-        <link rel="stylesheet" type="text/css" href="styles.css">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
     <style>
-        body {font-family: Arial;}
-        .card {background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px #ccc; margin: 20px;}
-        table {width: 100%; border-collapse: collapse;}
-        th, td {border: 1px solid #ddd; padding: 10px; text-align: left;}
-    </style>
+body {
+    font-family: Arial;
+}
+
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px #ccc;
+    margin: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+/* Image animation */
+.moving-image {
+    display: block;
+    margin: 20px auto;
+    animation: slideImage 3s ease-in-out infinite alternate;
+}
+
+@keyframes slideImage {
+    from {
+        transform: translateX(-350px);
+    }
+
+    to {
+        transform: translateX(350px);
+    }
+}
+</style>
+
     </head>
 
 
     <body>
-        <mg src="images/Materals1.png" width="100%" height="180" style="object-fit:cover; border-radus:10px;">
+        <!-- This PHP IS FOR ALLOWING THE POP UP MESSAGE -->
+        <?php if (!empty($message)) : ?>
+
+        <div class="alert <?= $message_type ?>">
+            <?= htmlspecialchars($message) ?>
+        </div>
+
+        <?php endif; ?>
 
         <div class="card">
-       <h2>Material Management</h2>
-         <?php if (in_array($role, ['COMPANY_ADMIN','PROJECT_MANAGER'])):?>
-          
+        <h2 style="text-align: center;">Material Management</h2><br>
+        <?php if (in_array($role, ['COMPANY_ADMIN','PROJECT_MANAGER'])):?>
+
+       <div style="background:linear-gradient(135deg, #1aafb9,#81C784); padding:25px; border-radius:12px; box-shadow:0 5px 15px rgba(0,0,0,0.2);
+        margin-bottom:20px;">   
        <form method="POST" action="">
            <label for="material_name">Material Name:</label>
-           <input type="text" id="name" name="name" required><br><br>
+           <input type="text" id="material_name" name="material_name" required><br><br>
 
            <label for="quantity">Quantity:</label>
            <input type="number" id="quantity" name="quantity" required><br><br>
@@ -101,14 +148,17 @@ if (!$conn) {
            <label for="supplier">Supplier:</label>
            <input type="text" id="supplier" name="supplier" required><br><br>
 
-           <input type="submit" value="Add Material">
+           <button type="submit" class="Add Material" style='width:70%; background:#007bff; color:white; padding:8px 10px; border-radius:10px; text-decoration:none; margin-right:5px;'>
+                Add material
+            </button>
        </form>
+       </div>
        <?php endif; ?>
        </div>
 
        <div class = "card">
         
-         <h3>Materials List</h3>
+         <h3 style="text-align: center;">List of Materials</h3><br>
          <table border="1">
              <tr>
                  <th>Name</th>
@@ -116,30 +166,68 @@ if (!$conn) {
                  <th>Unit Price</th>
                  <th>Supplier</th>
                  <th>Total Cost</th>
+                 <th>Action</th>
              </tr>
              <?php
              if ($result->num_rows > 0) {
                  while($row = $result->fetch_assoc()) {
+
+                    $total_cost = $row["quantity"] * $row["unit_price"];
                 
-                     echo "<tr>";
-                     echo "<td>" . $row["name"] . "</td>";
-                     echo "<td>" . $row["quantity"] . "</td>";
-                     echo "<td>$" . $row["unit_price"] . "</td>";
-                     echo "<td>" . $row["supplier"] . "</td>";
-                     echo "<td>$" . $row["total_cost"] . "</td>";
-                     echo "</tr>";
-                 }
-             } else {
-                 echo "<tr><td colspan='5'>No materials found.</td></tr>";
-         }
+                    echo "<tr>";
+                    echo "<td>" . $row["material_name"] . "</td>";
+                    echo "<td>" . $row["quantity"] . "</td>";
+                    echo "<td>" . number_format($row["unit_price"]) . " RWF</td>";
+                    echo "<td>" . $row["supplier"] . "</td>";
+                    echo "<td>" . number_format($total_cost) . " RWF</td>";
+                    
+                    echo "<td>";
+
+                    if(in_array($role, ['PROJECT_MANAGER', 'COMPANY_ADMIN'])) {
+
+                        echo "<a href='edit_material.php?id=".$row['material_id']."' 
+                        style='background:#007bff; color:white; padding:6px 12px; border-radius:7px; text-decoration:none; margin-right:5px;'>
+                        Edit</a>";
+
+                        echo "<a href='delete_material.php?id=".$row['material_id']."' 
+                        onclick=\"return confirm('Are you sure you want to delete this material?')\"
+                        style='background:#dc3545; color:white; padding:6px 12px; border-radius:7px; text-decoration:none;'>
+                        Delete</a>";
+
+                    }
+
+                    echo "</td>";
+
+                    echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='5'>No materials found.</td></tr>";
+                }
 
     ?>
             
          </table>
          </div>
     <i class ="fas fa-box"></i>
-    <img src="images/materials.png" alt="Materials Image" style="width:100%; max-width:600px; margin-top:20px;">
+    <img src="images/materials.png" class="moving-image" style="width:100%; max-width:600px;"><br>
 
-    <a href="company_admin_dashboard.php">Back</a>    
-    </body>
+    <div style="text-align:center; margin-top:15px;">
+        <a href="company_admin_dashboard.php" class="back-btn" style="
+            display:inline-block; width:20%; background: #05316b; color:white; padding:10px; border-radius:7px; text-decoration:none; font-size:16px;
+            font-weight:bold; text-align:center; margin-top:15px; box-sizing:border-box;
+        ">
+        Back
+        </a> 
+    </div>   
+
+         <!--This script is for allowing the pop up message to disappear after 3 seconds(Auto-hide after a few seconds) -->
+<script>
+        setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            alert.style.display = "none";
+        });
+    }, 3000);
+</script>
+</body>
 </html>
