@@ -1,4 +1,4 @@
-# CMS
+# CMS (Construction Management System to Reduce Expenses in Construction Companies)
 CMS is a construction management system which will be used to reduce expenses in construction companies.
 
 Construction Management System
